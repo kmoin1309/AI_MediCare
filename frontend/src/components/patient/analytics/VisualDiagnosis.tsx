@@ -129,8 +129,36 @@ export const VisualDiagnosis: React.FC = () => {
   };
 
   const mockDoctors: Doctor[] = [
-    { name: 'Dr. Sarah Johnson', specialty: 'Dermatologist', experience: '10 years', contact: 'sarah.j@example.com' },
-    { name: 'Dr. Mark Lee', specialty: 'General Practitioner', experience: '8 years', contact: 'mark.l@example.com' },
+    { 
+      name: 'Dr. Priya Verma', 
+      specialty: 'Dermatologist', 
+      experience: '12 years', 
+      contact: 'moinuddin.kazi+priya@medicalavalion.com' 
+    },
+    { 
+      name: 'Dr. Rajesh Kumar', 
+      specialty: 'General Practitioner', 
+      experience: '15 years', 
+      contact: 'moinuddin.kazi+rajesh@medicalavalion.com' 
+    },
+    { 
+      name: 'Dr. Ananya Singh', 
+      specialty: 'Dermatologist', 
+      experience: '10 years', 
+      contact: 'moinuddin.kazi+ananya@medicalavalion.com' 
+    },
+    { 
+      name: 'Dr. Vikram Desai', 
+      specialty: 'General Practitioner', 
+      experience: '8 years', 
+      contact: 'moinuddin.kazi+vikram@medicalavalion.com' 
+    },
+    { 
+      name: 'Dr. Meera Sharma', 
+      specialty: 'Dermatologist', 
+      experience: '14 years', 
+      contact: 'moinuddin.kazi+meera@medicalavalion.com' 
+    }
   ];
 
   const handleDoctorClick = (doctorType: string) => {

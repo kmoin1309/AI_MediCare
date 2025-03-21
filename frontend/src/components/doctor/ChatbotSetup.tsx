@@ -1,6 +1,6 @@
 // components/doctor/ChatbotSetup.tsx
 import React, { useState } from 'react';
-import { Bot, Copy, Zap, Settings, HelpCircle } from 'lucide-react';
+import { Bot, Settings, HelpCircle, CheckCircle } from 'lucide-react';
 
 interface BotConfig {
   name: string;
@@ -18,32 +18,32 @@ export const ChatbotSetup: React.FC = () => {
     responseTime: 2,
     active: false,
   });
-  const [apiKey, setApiKey] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const generateApiKey = () => {
-    const newKey = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    setApiKey(newKey);
-  };
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
+  const [showNotification, setShowNotification] = useState(false);
 
   const toggleBotStatus = () => {
     setConfig(prev => ({ ...prev, active: !prev.active }));
   };
 
   const handleSave = () => {
-    console.log('Saving chatbot config:', { ...config, apiKey });
+    console.log('Saving AI Agent config:', config);
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 3000); // Hide after 3 seconds
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 relative">
+      {showNotification && (
+        <div className="fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg flex items-center shadow-lg">
+          <CheckCircle className="mr-2" size={20} />
+          Configuration saved successfully!
+        </div>
+      )}
+
       <div className="bg-white rounded-2xl shadow-sm p-6">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-semibold flex items-center">
-            <Bot className="mr-2 text-blue-600" /> Chatbot Configuration
+            <Bot className="mr-2 text-blue-600" /> AI Agent Configuration
           </h3>
           <button
             onClick={toggleBotStatus}
@@ -109,60 +109,6 @@ export const ChatbotSetup: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-sm p-6">
-        <h3 className="text-xl font-semibold mb-6 flex items-center">
-          <Zap className="mr-2 text-blue-600" /> API Integration
-        </h3>
-        <div className="space-y-4">
-          <button
-            onClick={generateApiKey}
-            className="bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 transition-all"
-          >
-            Generate API Key
-          </button>
-          
-          {apiKey && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  value={apiKey}
-                  readOnly
-                  className="flex-1 rounded-lg border-gray-300 shadow-sm p-2"
-                />
-                <button
-                  onClick={() => copyToClipboard(apiKey)}
-                  className="bg-gray-100 p-2 rounded-full hover:bg-gray-200"
-                >
-                  <Copy size={20} />
-                </button>
-              </div>
-              <p className="text-sm text-gray-600 flex items-center gap-1">
-                <HelpCircle size={16} /> Keep this key secure and do not share publicly
-              </p>
-            </div>
-          )}
-
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <h4 className="font-medium mb-2">Webhook URL</h4>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={`https://api.mediconnect.com/webhook/${apiKey || 'your-api-key'}`}
-                readOnly
-                className="flex-1 rounded-lg border-gray-300 shadow-sm p-2"
-              />
-              <button
-                onClick={() => copyToClipboard(`https://api.mediconnect.com/webhook/${apiKey || 'your-api-key'}`)}
-                className="bg-gray-100 p-2 rounded-full hover:bg-gray-200"
-              >
-                <Copy size={20} />
-              </button>
-            </div>
-          </div>
         </div>
       </div>
 

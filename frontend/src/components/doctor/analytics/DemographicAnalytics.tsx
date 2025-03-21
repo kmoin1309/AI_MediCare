@@ -21,12 +21,20 @@ interface PatientDemographic {
   lastVisit: string;
 }
 
+const initialData: PatientDemographic[] = [
+  { id: '1', age: 25, gender: 'male', location: 'Urban', condition: 'Chronic', visitCount: 3, lastVisit: '2025-03-15' },
+  { id: '2', age: 35, gender: 'female', location: 'Suburban', condition: 'Acute', visitCount: 1, lastVisit: '2025-03-10' },
+  { id: '3', age: 45, gender: 'male', location: 'Rural', condition: 'Preventive', visitCount: 2, lastVisit: '2025-03-12' },
+  { id: '4', age: 60, gender: 'female', location: 'Urban', condition: 'Chronic', visitCount: 5, lastVisit: '2025-03-18' },
+  { id: '5', age: 22, gender: 'other', location: 'Suburban', condition: 'Acute', visitCount: 1, lastVisit: '2025-03-14' },
+];
+
 interface DemographicAnalyticsProps {
   searchQuery: string;
 }
 
 export const DemographicAnalytics: React.FC<DemographicAnalyticsProps> = ({ searchQuery }) => {
-  const [patients, setPatients] = useState<PatientDemographic[]>([]);
+  const [patients, setPatients] = useState<PatientDemographic[]>(initialData);
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -65,24 +73,18 @@ export const DemographicAnalytics: React.FC<DemographicAnalyticsProps> = ({ sear
   ];
 
   useEffect(() => {
-    const fetchDemographics = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (timeRange !== 'all') params.append('timeRange', timeRange.replace('d', ''));
-        if (filters.gender.length) params.append('gender', filters.gender.join(','));
-        if (filters.location.length) params.append('location', filters.location.join(','));
-        if (filters.condition.length) params.append('condition', filters.condition.join(','));
-        params.append('ageRange', `${filters.ageRange[0]},${filters.ageRange[1]}`);
-
-        const response = await fetch(`/api/demographics?${params}`);
-        const data = await response.json();
-        setPatients(data);
-      } catch (error) {
-        console.error('Failed to fetch demographics:', error);
-      }
-    };
-
-    fetchDemographics();
+    // Simulate API call with filters
+    const filteredPatients = initialData.filter(patient => {
+      const matchesSearch = patient.id.includes(searchQuery) || 
+        patient.condition.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesAge = patient.age >= filters.ageRange[0] && patient.age <= filters.ageRange[1];
+      const matchesGender = filters.gender.length === 0 || filters.gender.includes(patient.gender);
+      const matchesLocation = filters.location.length === 0 || filters.location.includes(patient.location);
+      const matchesCondition = filters.condition.length === 0 || filters.condition.includes(patient.condition);
+      
+      return matchesSearch && matchesAge && matchesGender && matchesLocation && matchesCondition;
+    });
+    setPatients(filteredPatients);
   }, [searchQuery, filters, timeRange]);
 
   const exportData = () => {
