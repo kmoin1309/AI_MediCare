@@ -429,7 +429,7 @@ export const AppointmentAnalytics: React.FC = () => {
               <button
                 onClick={() => setShowCancelConfirm(null)}
                 className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-full hover:bg-gray-400 transition-all"
-              ></button>
+              >
                 No, Keep
               </button>
             </div>
