@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Star, Clock, Calendar, Phone } from 'lucide-react';
+import { config } from '../../config/config';
 
 interface Doctor {
   id: string;
@@ -116,7 +117,7 @@ export const NearbyDoctors: React.FC<{ searchQuery: string }> = ({ searchQuery }
     ));
   };
 
-    const handleBookAppointment = async () => {
+  const handleBookAppointment = async () => {
     if (!selectedDoctor) return;
     
     setBookingStatus({
@@ -129,10 +130,10 @@ export const NearbyDoctors: React.FC<{ searchQuery: string }> = ({ searchQuery }
   
     try {
       // this code sends whatsapp message
-      const response = await fetch('http://localhost:5000/api/send-message', {
+      const response = await fetch(`${config.BACKEND_URL}/api/send-message`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          ...config.DEFAULT_HEADERS,
         },
         body: JSON.stringify({
           message: `Your appointment with Dr. ${selectedDoctor.name} has been booked successfully. Click here to join the consultation: ${consulationlink}`,
@@ -147,13 +148,6 @@ export const NearbyDoctors: React.FC<{ searchQuery: string }> = ({ searchQuery }
       const data = await response.json();
       
       // Update booking status with success
-      // setBookingStatus({
-      //   loading: false,
-      //   success: true,
-      //   error: null,
-      //   consultationLink: data.consultationLink,
-      // });
-      // set booking status and show consulatation link as https://4f52-59-164-67-218.ngrok-free.app/doctor/default-room
       setBookingStatus({
         loading: false,
         success: true,

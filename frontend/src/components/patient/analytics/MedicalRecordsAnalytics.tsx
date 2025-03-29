@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, Download, Activity, Filter, X, CheckCircle, Calendar } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import jsPDF from 'jspdf';
+import { config } from '../../../config/config';
 
 interface UserRecord {
   id: string;
@@ -89,6 +90,34 @@ export const MedicalRecordsAnalytics: React.FC<MedicalRecordsAnalyticsProps> = (
   const [isBookingAppointment, setIsBookingAppointment] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchRecords = async () => {
+      try {
+        const response = await fetch(`${config.BACKEND_URL}/api/medical-records`, {
+          headers: {
+            ...config.DEFAULT_HEADERS,
+            Authorization: `Bearer ${localStorage.getItem('token')}`
+          },
+          timeout: config.API_TIMEOUT
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch records');
+        }
+
+        const data = await response.json();
+        if (data && data.length > 0) {
+          // Process and set records
+        }
+      } catch (error) {
+        console.error('Error fetching records:', error);
+        // Use mock data on error
+      }
+    };
+
+    fetchRecords();
+  }, []);
 
   // Add filtering by search query
   useEffect(() => {
@@ -238,23 +267,25 @@ export const MedicalRecordsAnalytics: React.FC<MedicalRecordsAnalyticsProps> = (
     setBookingSuccess(null);
 
     try {
-      // Normalize doctor type
-      const normalizedDoctorType = doctorType.toLowerCase() === 'general practitioner' 
-        ? 'General Practitioner' 
-        : 'Specialist';
+      const response = await fetch(`${config.BACKEND_URL}/api/appointments/book`, {
+        method: 'POST',
+        headers: {
+          ...config.DEFAULT_HEADERS,
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          doctorType,
+          date: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        })
+      });
 
-      // Get available doctors
-      const availableDoctors = mockDoctors[normalizedDoctorType] || [];
-      
-      if (availableDoctors.length === 0) {
-        throw new Error('No doctors available for this specialty');
+      if (!response.ok) {
+        throw new Error('Failed to book appointment');
       }
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      const doctor = availableDoctors[0];
-      const appointmentDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const data = await response.json();
+      const doctor = data.doctor;
+      const appointmentDate = new Date(data.date);
 
       setBookingSuccess(
         `Appointment booked successfully with ${doctor.name} for ${appointmentDate.toLocaleDateString()} at 10:00 AM`

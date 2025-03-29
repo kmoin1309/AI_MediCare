@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Download, Clock, Video, X, Trash2, Edit, CheckCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
+import { config } from '../../../config/config';
 
 interface Appointment {
   _id: string;
@@ -82,10 +83,12 @@ export const AppointmentAnalytics: React.FC = () => {
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
-        const response = await axios.get('/api/appointment', {
+        const response = await axios.get(`${config.BACKEND_URL}/api/appointment`, {
           headers: {
+            ...config.DEFAULT_HEADERS,
             Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+          },
+          timeout: config.API_TIMEOUT
         });
         
         if (Array.isArray(response.data) && response.data.length > 0) {
@@ -163,12 +166,14 @@ export const AppointmentAnalytics: React.FC = () => {
     try {
       // Try to update via API first
       try {
-        await axios.patch(`/api/appointment/${id}`,
+        await axios.patch(`${config.BACKEND_URL}/api/appointment/${id}`,
           { status: 'cancelled' },
           {
             headers: {
+              ...config.DEFAULT_HEADERS,
               Authorization: `Bearer ${localStorage.getItem('token')}`
-            }
+            },
+            timeout: config.API_TIMEOUT
           }
         );
       } catch (apiError) {
@@ -191,12 +196,14 @@ export const AppointmentAnalytics: React.FC = () => {
 
   const handleReschedule = async (id: string, newDate: string, newTime: string) => {
     try {
-      const response = await axios.patch(`/api/appointment/${id}`,
+      const response = await axios.patch(`${config.BACKEND_URL}/api/appointment/${id}`,
         { date: newDate, time: newTime },
         {
           headers: {
+            ...config.DEFAULT_HEADERS,
             Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+          },
+          timeout: config.API_TIMEOUT
         }
       );
       setAppointments(prev => prev.map(a =>
@@ -211,12 +218,14 @@ export const AppointmentAnalytics: React.FC = () => {
 
   const handleAddNotes = async (id: string) => {
     try {
-      const response = await axios.patch(`/api/appointment/${id}`,
+      const response = await axios.patch(`${config.BACKEND_URL}/api/appointment/${id}`,
         { notes: newNotes },
         {
           headers: {
+            ...config.DEFAULT_HEADERS,
             Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+          },
+          timeout: config.API_TIMEOUT
         }
       );
       setAppointments(prev => prev.map(a =>
@@ -420,7 +429,7 @@ export const AppointmentAnalytics: React.FC = () => {
               <button
                 onClick={() => setShowCancelConfirm(null)}
                 className="flex-1 bg-gray-300 text-gray-800 py-2 rounded-full hover:bg-gray-400 transition-all"
-              >
+              ></button>
                 No, Keep
               </button>
             </div>

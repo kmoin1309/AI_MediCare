@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Brain, Clock, CheckCircle, AlertTriangle, Download } from 'lucide-react';
+import { config } from '../../../config/config';
 
 const mockPerformanceData = {
   daily: [
@@ -38,8 +39,18 @@ export const AIAssistantAnalytics: React.FC = () => {
     const fetchData = async () => {
       try {
         const [perfResponse, accResponse] = await Promise.all([
-          fetch(`/api/analytics/performance?timeFrame=${timeFrame}`),
-          fetch('/api/analytics/accuracy')
+          fetch(`${config.BACKEND_URL}/api/analytics/performance?timeFrame=${timeFrame}`, {
+            headers: {
+              ...config.DEFAULT_HEADERS,
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          }),
+          fetch(`${config.BACKEND_URL}/api/analytics/accuracy`, {
+            headers: {
+              ...config.DEFAULT_HEADERS,
+              Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+          })
         ]);
         
         const perfData = await perfResponse.json();
