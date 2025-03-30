@@ -174,7 +174,6 @@ head_pose_counts = {
 #     print(f"API keys found: {bool(api_keys_str)}")  # Debug output
 #     if not api_keys_str:
 #         # Fallback to a default key for development
-#         return ["AIzaSyBV2_8SW0tufxTjfLfWM0GM6xUDOGxEO8M"]
     
 #     keys = api_keys_str.split(',')
 #     print(f"Number of API keys: {len(keys)}")  # Debug output
@@ -473,7 +472,6 @@ def get_api_keys():
     print(f"API keys found: {bool(api_keys_str)}")  # Debug output
     if not api_keys_str:
         # Fallback to a default key for development
-        return ["AIzaSyBV2_8SW0tufxTjfLfWM0GM6xUDOGxEO8M"]
     
     keys = api_keys_str.split(',')
     print(f"Number of API keys: {len(keys)}")  # Debug output
