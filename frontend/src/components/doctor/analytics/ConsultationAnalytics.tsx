@@ -8,6 +8,7 @@ import {
   Clock, Users, RefreshCcw, Download, Plus, Calendar, DollarSign, Save, 
   Trash2, Edit, Check, X, Search 
 } from 'lucide-react';
+import { config } from '../../../config/config';
 
 interface Consultation {
   id: string;
@@ -98,20 +99,20 @@ export const ConsultationAnalytics: React.FC = () => {
     setError(null);
     
     try {
-      const selectedFee = feeStructures.find(f => f.type === newConsultation.type);
-      if (!selectedFee) throw new Error('Invalid consultation type');
+      const response = await fetch(`${config.BACKEND_URL}/api/consultations`, {
+        method: 'POST',
+        headers: {
+          ...config.DEFAULT_HEADERS,
+          Authorization: `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(newConsultation)
+      });
 
-      const newCons: Consultation = {
-        id: Math.random().toString(36).substring(2),
-        patientId: newConsultation.patientId,
-        date: newConsultation.date,
-        time: newConsultation.time,
-        type: newConsultation.type,
-        status: 'scheduled',
-        duration: selectedFee.duration,
-        fee: selectedFee.amount,
-        notes: newConsultation.notes,
-      };
+      if (!response.ok) {
+        throw new Error('Failed to create consultation');
+      }
+
+      const newCons: Consultation = await response.json();
       
       setConsultations([...consultations, newCons]);
       setNewConsultation({ patientId: '', date: '', time: '', type: 'initial', notes: '' });

@@ -111,6 +111,27 @@ export const MedicalRecordsAnalytics: React.FC<MedicalRecordsAnalyticsProps> = (
     }
   }, [searchQuery]);
 
+  // Add filtering by search query
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = mockUserRecords.filter(record => 
+        record.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.doctor.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setUserRecords(filtered);
+      
+      const filteredDiagnostic = mockDiagnosticRecords.filter(record => 
+        record.diagnosis.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.doctor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (record.notes && record.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      setDiagnosticRecords(filteredDiagnostic);
+    } else {
+      setUserRecords(mockUserRecords);
+      setDiagnosticRecords(mockDiagnosticRecords);
+    }
+  }, [searchQuery]);
+
   const filteredUserRecords = userRecords
     .filter(record => filterType === 'all' || record.type === filterType)
     .sort((a, b) => {
