@@ -69,7 +69,7 @@ export const FeeManagement: React.FC = () => {
             <div key={fee.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
               <div className="flex-1">
                 <p className="font-medium capitalize">{fee.type} Consultation</p>
-                <p className="text-gray-600">${fee.amount} / {fee.duration} mins</p>
+                <p className="text-gray-600">₹{fee.amount} / {fee.duration} mins</p>
               </div>
               <button
                 onClick={() => removeFeeStructure(fee.id)}
@@ -96,7 +96,7 @@ export const FeeManagement: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Amount ($)</label>
+            <label className="block text-sm font-medium text-gray-700">Amount (₹)</label>
             <input
               type="number"
               value={newFee.amount || ''}

@@ -1,9 +1,8 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // components/patient/analytics/MedicalRecordsAnalytics.tsx
 import React, { useState, useEffect } from 'react';
-import { FileText, Download, Activity, Filter, X } from 'lucide-react';
+import { FileText, Download, Activity, Filter, X, CheckCircle, Calendar } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import axios from 'axios';
+import jsPDF from 'jspdf';
 
 interface UserRecord {
   id: string;
@@ -29,102 +28,88 @@ interface UserInfo {
   gender: string;
 }
 
+// Add the searchQuery prop to the component interface
+interface MedicalRecordsAnalyticsProps {
+  searchQuery: string;
+}
+
 const mockUserInfo: UserInfo = {
-  name: 'John Doe',
+  name: 'Arjun Patel',
   age: 34,
   gender: 'Male',
 };
 
 const mockUserRecords: UserRecord[] = [
-  { id: '1', date: '2025-03-01', type: 'consultation', description: 'Annual checkup', doctor: 'Dr. Smith' },
-  { id: '2', date: '2025-03-10', type: 'test', description: 'Blood work results', doctor: 'Dr. Johnson' },
-  { id: '3', date: '2025-03-15', type: 'prescription', description: 'Antibiotics for infection', doctor: 'Dr. Smith' },
-  { id: '4', date: '2025-02-20', type: 'consultation', description: 'Follow-up on blood pressure', doctor: 'Dr. Johnson' },
+  { id: '1', date: '2025-03-01', type: 'consultation', description: 'Annual checkup', doctor: 'Dr. Ravi Sharma' },
+  { id: '2', date: '2025-03-10', type: 'test', description: 'Blood work results', doctor: 'Dr. Priya Mehta' },
+  { id: '3', date: '2025-03-15', type: 'prescription', description: 'Antibiotics for infection', doctor: 'Dr. Ravi Sharma' },
+  { id: '4', date: '2025-02-20', type: 'consultation', description: 'Follow-up on blood pressure', doctor: 'Dr. Priya Mehta' },
 ];
 
 const mockDiagnosticRecords: DiagnosticRecord[] = [
-  { id: '1', date: '2025-03-10', diagnosis: 'Hypertension', testResults: 'Blood pressure: 140/90 mmHg', severity: 'medium', doctor: 'Dr. Johnson', notes: 'Monitor for 2 weeks' },
-  { id: '2', date: '2025-03-01', diagnosis: 'Upper Respiratory Infection', testResults: 'Positive for bacterial infection', severity: 'low', doctor: 'Dr. Smith', notes: 'Prescribed antibiotics' },
-  { id: '3', date: '2025-02-20', diagnosis: 'Pre-diabetes', testResults: 'A1C: 6.2%', severity: 'medium', doctor: 'Dr. Johnson', notes: 'Dietary changes recommended' },
+  { id: '1', date: '2025-03-10', diagnosis: 'Hypertension', testResults: 'Blood pressure: 140/90 mmHg', severity: 'medium', doctor: 'Dr. Priya Mehta', notes: 'Monitor for 2 weeks' },
+  { id: '2', date: '2025-03-01', diagnosis: 'Upper Respiratory Infection', testResults: 'Positive for bacterial infection', severity: 'low', doctor: 'Dr. Ravi Sharma', notes: 'Prescribed antibiotics' },
+  { id: '3', date: '2025-02-20', diagnosis: 'Pre-diabetes', testResults: 'A1C: 6.2%', severity: 'medium', doctor: 'Dr. Priya Mehta', notes: 'Dietary changes recommended' },
 ];
 
-const mockChartData = [
+const chartData = [
   { month: 'Jan', consultations: 1, tests: 0, prescriptions: 0 },
   { month: 'Feb', consultations: 1, tests: 0, prescriptions: 0 },
   { month: 'Mar', consultations: 1, tests: 1, prescriptions: 1 },
 ];
 
-export const MedicalRecordsAnalytics: React.FC = () => {
+const mockPatientDetails = {
+  patientId: "P123456",
+  bloodGroup: "B+",
+  weight: "75 kg",
+  height: "175 cm",
+  allergies: "None",
+  emergencyContact: "+91 98765 43210"
+};
+
+// Add mock doctors data
+const mockDoctors = {
+  'General Practitioner': [
+    { _id: 'gp1', name: 'Dr. Ravi Sharma', availability: true },
+    { _id: 'gp2', name: 'Dr. Priya Mehta', availability: true }
+  ],
+  'Specialist': [
+    { _id: 'sp1', name: 'Dr. Anjali Singh', specialty: 'Cardiologist', availability: true },
+    { _id: 'sp2', name: 'Dr. Rahul Verma', specialty: 'Neurologist', availability: true }
+  ]
+};
+
+export const MedicalRecordsAnalytics: React.FC<MedicalRecordsAnalyticsProps> = ({ searchQuery }) => {
   const [userRecords, setUserRecords] = useState<UserRecord[]>(mockUserRecords);
   const [diagnosticRecords, setDiagnosticRecords] = useState<DiagnosticRecord[]>(mockDiagnosticRecords);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'user' | 'diagnostic'>('user');
   const [filterType, setFilterType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'date-asc' | 'date-desc' | 'doctor'>('date-desc');
   const [selectedDiagnostic, setSelectedDiagnostic] = useState<DiagnosticRecord | null>(null);
+  const [isBookingAppointment, setIsBookingAppointment] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [bookingSuccess, setBookingSuccess] = useState<string | null>(null);
 
+  // Add filtering by search query
   useEffect(() => {
-    const fetchRecords = async () => {
-      try {
-        const response = await axios.get('/api/medical-records', {
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
-          }
-        });
-        
-        console.log('API Response:', response.data); // Debug log
-        
-        if (Array.isArray(response.data) && response.data.length > 0) {
-          // Ensure the response matches our interfaces
-          const userRecs = response.data
-            .filter((record: any) => 
-              record.type && !record.diagnosis && 
-              ['consultation', 'test', 'prescription'].includes(record.type)
-            )
-            .map((record: any) => ({
-              id: record._id || record.id,
-              date: new Date(record.date).toISOString().split('T')[0],
-              type: record.type,
-              description: record.description,
-              doctor: record.doctor
-            }));
-
-          const diagRecs = response.data
-            .filter((record: any) => record.diagnosis)
-            .map((record: any) => ({
-              id: record._id || record.id,
-              date: new Date(record.date).toISOString().split('T')[0],
-              diagnosis: record.diagnosis,
-              testResults: record.testResults,
-              severity: record.severity || 'low',
-              doctor: record.doctor,
-              notes: record.notes
-            }));
-
-          if (userRecs.length > 0 || diagRecs.length > 0) {
-            setUserRecords(userRecs);
-            setDiagnosticRecords(diagRecs);
-            setError('');
-          } else {
-            throw new Error('No valid records found');
-          }
-        } else {
-          throw new Error('Empty or invalid response');
-        }
-      } catch (err) {
-        console.error('Error fetching records:', err);
-        // Fallback to mock data
-        setUserRecords(mockUserRecords);
-        setDiagnosticRecords(mockDiagnosticRecords);
-        setError('Failed to load medical records - using mock data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRecords();
-  }, []);
+    if (searchQuery) {
+      const filtered = mockUserRecords.filter(record => 
+        record.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.doctor.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setUserRecords(filtered);
+      
+      const filteredDiagnostic = mockDiagnosticRecords.filter(record => 
+        record.diagnosis.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        record.doctor.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (record.notes && record.notes.toLowerCase().includes(searchQuery.toLowerCase()))
+      );
+      setDiagnosticRecords(filteredDiagnostic);
+    } else {
+      setUserRecords(mockUserRecords);
+      setDiagnosticRecords(mockDiagnosticRecords);
+    }
+  }, [searchQuery]);
 
   const filteredUserRecords = userRecords
     .filter(record => filterType === 'all' || record.type === filterType)
@@ -167,27 +152,119 @@ export const MedicalRecordsAnalytics: React.FC = () => {
     }
   };
 
-  const getChartData = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months.map(month => ({
-      month,
-      consultations: userRecords.filter(r => 
-        new Date(r.date).getMonth() === months.indexOf(month) && 
-        r.type === 'consultation'
-      ).length,
-      tests: userRecords.filter(r => 
-        new Date(r.date).getMonth() === months.indexOf(month) && 
-        r.type === 'test'
-      ).length,
-      prescriptions: userRecords.filter(r => 
-        new Date(r.date).getMonth() === months.indexOf(month) && 
-        r.type === 'prescription'
-      ).length,
-    }));
+  const downloadDiagnosticPDF = () => {
+    if (!selectedDiagnostic) return;
+
+    const doc = new jsPDF();
+    const lineHeight = 10;
+    let yPos = 20;
+
+    // Add hospital info
+    doc.setFontSize(20);
+    doc.text('Terna Medical Hospital', 20, yPos);
+    yPos += lineHeight;
+    doc.setFontSize(12);
+    doc.text('123 Healthcare Avenue, Bangalore - 560001', 20, yPos);
+    doc.text('Phone: +91 80 1234 5678', 20, yPos + lineHeight);
+    yPos += lineHeight * 3;
+
+    // Add title
+    doc.setFontSize(16);
+    doc.text('Diagnostic Report', 20, yPos);
+    yPos += lineHeight * 2;
+
+    // Add patient information
+    doc.setFontSize(14);
+    doc.text('Patient Information:', 20, yPos);
+    yPos += lineHeight;
+    doc.setFontSize(12);
+    doc.text(`Name: ${mockUserInfo.name}`, 20, yPos);
+    doc.text(`Patient ID: ${mockPatientDetails.patientId}`, 120, yPos);
+    yPos += lineHeight;
+    doc.text(`Age: ${mockUserInfo.age}`, 20, yPos);
+    doc.text(`Gender: ${mockUserInfo.gender}`, 120, yPos);
+    yPos += lineHeight;
+    doc.text(`Blood Group: ${mockPatientDetails.bloodGroup}`, 20, yPos);
+    doc.text(`Weight: ${mockPatientDetails.weight}`, 120, yPos);
+    yPos += lineHeight * 2;
+
+    // Add diagnostic details with a line separator
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, yPos - 5, 190, yPos - 5);
+    doc.setFontSize(14);
+    doc.text('Diagnostic Details:', 20, yPos);
+    yPos += lineHeight;
+    doc.setFontSize(12);
+
+    const details = [
+      { label: 'Diagnosis', value: selectedDiagnostic.diagnosis },
+      { label: 'Date', value: selectedDiagnostic.date },
+      { label: 'Test Results', value: selectedDiagnostic.testResults },
+      { label: 'Severity', value: selectedDiagnostic.severity.toUpperCase() },
+      { label: 'Doctor', value: selectedDiagnostic.doctor },
+      { label: 'Notes', value: selectedDiagnostic.notes || 'N/A' }
+    ];
+
+    details.forEach(({ label, value }) => {
+      doc.text(`${label}: ${value}`, 20, yPos);
+      yPos += lineHeight;
+    });
+
+    // Add recommendations section
+    yPos += lineHeight;
+    doc.setDrawColor(200, 200, 200);
+    doc.line(20, yPos - 5, 190, yPos - 5);
+    doc.setFontSize(14);
+    doc.text('Recommendations:', 20, yPos);
+    yPos += lineHeight;
+    doc.setFontSize(12);
+    doc.text('1. Follow prescribed medication schedule', 25, yPos);
+    yPos += lineHeight;
+    doc.text('2. Schedule follow-up in 2 weeks', 25, yPos);
+    yPos += lineHeight;
+    doc.text('3. Maintain healthy diet and exercise routine', 25, yPos);
+
+    // Add footer
+    doc.setFontSize(10);
+    doc.text('This is a computer-generated document.', 20, 280);
+    doc.text('For any queries, contact: support@medicalavalon.com', 20, 285);
+
+    doc.save(`diagnostic-report-${selectedDiagnostic.id}.pdf`);
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  const handleBookAppointment = async (doctorType: string) => {
+    setIsBookingAppointment(true);
+    setBookingError(null);
+    setBookingSuccess(null);
+
+    try {
+      // Normalize doctor type
+      const normalizedDoctorType = doctorType.toLowerCase() === 'general practitioner' 
+        ? 'General Practitioner' 
+        : 'Specialist';
+
+      // Get available doctors
+      const availableDoctors = mockDoctors[normalizedDoctorType] || [];
+      
+      if (availableDoctors.length === 0) {
+        throw new Error('No doctors available for this specialty');
+      }
+
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const doctor = availableDoctors[0];
+      const appointmentDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      setBookingSuccess(
+        `Appointment booked successfully with ${doctor.name} for ${appointmentDate.toLocaleDateString()} at 10:00 AM`
+      );
+    } catch (error: any) {
+      setBookingError(error.message || 'Failed to book appointment');
+    } finally {
+      setIsBookingAppointment(false);
+    }
+  };
 
   return (
     <div className="space-y-8">
@@ -217,7 +294,7 @@ export const MedicalRecordsAnalytics: React.FC = () => {
           </button>
         </div>
         <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={getChartData()}>
+          <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" />
             <YAxis />
@@ -341,6 +418,48 @@ export const MedicalRecordsAnalytics: React.FC = () => {
               <p><span className="font-medium">Severity:</span> {selectedDiagnostic.severity.charAt(0).toUpperCase() + selectedDiagnostic.severity.slice(1)}</p>
               <p><span className="font-medium">Doctor:</span> {selectedDiagnostic.doctor}</p>
               {selectedDiagnostic.notes && <p><span className="font-medium">Notes:</span> {selectedDiagnostic.notes}</p>}
+              
+              <div className="mt-6 space-y-4">
+                {bookingSuccess && (
+                  <div className="p-3 bg-green-100 text-green-800 rounded-lg flex items-center gap-2">
+                    <CheckCircle size={20} className="text-green-600" />
+                    <span>{bookingSuccess}</span>
+                  </div>
+                )}
+                
+                {bookingError && (
+                  <div className="p-3 bg-red-100 text-red-800 rounded-lg flex items-center gap-2">
+                    <X size={20} className="text-red-600" />
+                    <span>{bookingError}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={downloadDiagnosticPDF}
+                    className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 transition-all"
+                  >
+                    <Download size={20} /> Download PDF
+                  </button>
+                  
+                  <button
+                    onClick={() => handleBookAppointment('General Practitioner')}
+                    disabled={isBookingAppointment}
+                    className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-full hover:bg-blue-600 disabled:opacity-50 transition-all"
+                  >
+                    {isBookingAppointment ? (
+                      <>
+                        <span>Booking...</span>
+                        <div className="animate-spin h-4 w-4 border-2 border-t-white rounded-full"></div>
+                      </>
+                    ) : (
+                      <>
+                        <Calendar size={20} /> Book Appointment
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
